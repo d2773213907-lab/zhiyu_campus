@@ -24,3 +24,9 @@ __pycache__/
 
 # 交付物压缩包需要入库
 !deliverables/*.zip
+
+# 图件只保留 PDF（vsdx 源文件与 png 预览不入库）
+图*.vsdx
+附图*.vsdx
+图*.png
+附图*.png
