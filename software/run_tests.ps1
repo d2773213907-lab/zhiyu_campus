@@ -8,7 +8,6 @@ $OutFile = Join-Path $PSScriptRoot 'test-results.json'
 $secretB64 = 'emhpeXUtY2FtcHVzLWRldi1zZWNyZXQta2V5LTMyYnl0ZXMhIQ=='
 
 $results = New-Object System.Collections.Generic.List[object]
-$script:tokens = @{}
 
 function Add-Result($id, $scene, $expected, $actual, $verdict, $note) {
     $results.Add([pscustomobject]@{
@@ -91,7 +90,7 @@ $adminToken = Get-Token '20230003' 'abc12345'
 $acc = "r$suffix"
 $r = Invoke-Api -Method 'POST' -Path '/api/v1/auth/register' -Body @{ account = $acc; nickname = '新同学'; password = 'abc12345' }
 $ok = ($r.status -eq 200 -and $r.body.code -eq 0 -and $r.body.data.id -gt 0)
-Add-Result 'TC-01' '正常注册' '201，新增一行，口令为哈希' "HTTP $($r.status)，code=$($r.body.code)" $(if ($ok) {'通过'} else {'未通过'}) ''
+Add-Result 'TC-01' '正常注册' '200，新增一行，口令为哈希' "HTTP $($r.status)，code=$($r.body.code)" $(if ($ok) {'通过'} else {'未通过'}) ''
 
 # TC-02 重复注册
 $r = Invoke-Api -Method 'POST' -Path '/api/v1/auth/register' -Body @{ account = $acc; nickname = '重复'; password = 'abc12345' }
@@ -190,8 +189,7 @@ Add-Result 'TC-16' '关键词检索' '按 score 降序，待审内容不出现' 
 
 # TC-17 空关键词
 $r = Invoke-Api -Method 'GET' -Path '/api/v1/search?q=' -Token $tokenA
-$ok = ($r.status -eq 400 -and $r.body.code -eq 40001)
-Add-Result 'TC-17' '空关键词检索' '返回全量内容（发现态），不报错' "HTTP $($r.status)，返回 $($r.body.data.Count) 条" $(if ($r.status -eq 200 -and $r.body.data.Count -ge 0) {'通过'} else {'未通过'}) '评审后修订预期：空关键词进入发现态更符合使用习惯'
+Add-Result 'TC-17' '空关键词检索' '200，返回发现态列表（不报错）' "HTTP $($r.status)，返回 $($r.body.data.Count) 条" $(if ($r.status -eq 200 -and $r.body.data.Count -ge 0) {'通过'} else {'未通过'}) '评审后修订预期：空关键词进入发现态更符合使用习惯'
 
 # TC-18 审核处置
 Start-Sleep -Seconds 2
@@ -300,3 +298,6 @@ $fail = @($results | Where-Object { $_.verdict -eq '未通过' }).Count
 $skip = @($results | Where-Object { $_.verdict -eq '未覆盖' }).Count
 Write-Output "总计 $($results.Count) 条：通过 $pass，部分通过 $partial，未通过 $fail，未覆盖 $skip"
 Write-Output "结果已写入 $OutFile"
+
+# 供 CI / 脚本判断：有未通过用例时返回非 0
+if ($fail -gt 0) { exit 1 }

@@ -23,7 +23,7 @@ spring:
 mybatis-plus:
   configuration:
     map-underscore-to-camel-case: true
-    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+    log-impl: org.apache.ibatis.logging.slf4j.Slf4jImpl
   global-config:
     banner: false
 
@@ -41,7 +41,7 @@ app:
     model: ${AI_MODEL:deepseek-chat}
     timeout-seconds: 20
   jwt:
-    secret: emhpeXUtY2FtcHVzLWRldi1zZWNyZXQta2V5LTMyYnl0ZXMhIQ==
+    secret: ${JWT_SECRET:emhpeXUtY2FtcHVzLWRldi1zZWNyZXQta2V5LTMyYnl0ZXMhIQ==}
     access-minutes: 120
     refresh-days: 7
 

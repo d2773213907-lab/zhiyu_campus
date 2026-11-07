@@ -17,6 +17,9 @@ import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.time.LocalDateTime;
+import java.util.Collection;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * 点赞与收藏。两者都遵循“先判断再改计数”，
@@ -55,6 +58,31 @@ public class InteractionService {
         return favoriteMapper.selectCount(new LambdaQueryWrapper<Favorite>()
                 .eq(Favorite::getUserId, userId)
                 .eq(Favorite::getPostId, postId)) > 0;
+    }
+
+    /**
+     * 批量查询“我点过赞的目标”，供列表页一次性取回，避免每条记录查一次库（N+1）。
+     */
+    public Set<Long> likedIds(Long userId, int targetType, Collection<Long> targetIds) {
+        if (userId == null || targetIds == null || targetIds.isEmpty()) {
+            return Set.of();
+        }
+        return likeMapper.selectList(new LambdaQueryWrapper<LikeRecord>()
+                        .eq(LikeRecord::getUserId, userId)
+                        .eq(LikeRecord::getTargetType, targetType)
+                        .in(LikeRecord::getTargetId, targetIds))
+                .stream().map(LikeRecord::getTargetId).collect(Collectors.toSet());
+    }
+
+    /** 批量查询“我收藏过的帖子”，同上。 */
+    public Set<Long> favoritedPostIds(Long userId, Collection<Long> postIds) {
+        if (userId == null || postIds == null || postIds.isEmpty()) {
+            return Set.of();
+        }
+        return favoriteMapper.selectList(new LambdaQueryWrapper<Favorite>()
+                        .eq(Favorite::getUserId, userId)
+                        .in(Favorite::getPostId, postIds))
+                .stream().map(Favorite::getPostId).collect(Collectors.toSet());
     }
 
     @Transactional

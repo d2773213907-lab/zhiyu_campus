@@ -32,6 +32,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -125,13 +126,19 @@ public class PostService {
         Map<Long, List<String>> tags = loadTagNames(posts.stream().map(Post::getId).toList());
         Map<Long, String> authors = nicknameMap(posts.stream().map(Post::getAuthorId).toList());
 
+        // 批量取“我是否点赞/收藏”，避免原来 toVO() 里每条帖子各查两次库（N+1）
+        List<Long> ids = posts.stream().map(Post::getId).toList();
+        Set<Long> likedIds = interactionService.likedIds(userId, 2, ids);
+        Set<Long> favoritedIds = interactionService.favoritedPostIds(userId, ids);
+
         List<PostVO> list = new ArrayList<>();
         for (Post p : posts) {
-            PostVO vo = toVO(p, boards.get(p.getBoardId()), tags, userId);
-            list.add(new PostVO(vo.id(), vo.boardId(), vo.boardName(), vo.authorId(),
-                    authors.get(p.getAuthorId()), vo.title(), null, excerpt(p.getBody()),
-                    vo.status(), vo.viewCount(), vo.likeCount(), vo.favoriteCount(),
-                    vo.createdAt(), vo.tags(), vo.liked(), vo.favorited()));
+            Board board = boards.get(p.getBoardId());
+            list.add(new PostVO(p.getId(), p.getBoardId(), board == null ? null : board.getName(),
+                    p.getAuthorId(), authors.get(p.getAuthorId()), p.getTitle(), null, excerpt(p.getBody()),
+                    p.getStatus(), p.getViewCount(), p.getLikeCount(), p.getFavoriteCount(),
+                    p.getCreatedAt(), tags.getOrDefault(p.getId(), List.of()),
+                    likedIds.contains(p.getId()), favoritedIds.contains(p.getId())));
         }
         return list;
     }
