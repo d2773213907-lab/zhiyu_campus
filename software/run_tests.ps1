@@ -34,11 +34,18 @@ function Invoke-Api {
         return [pscustomobject]@{ status = [int]$resp.StatusCode; body = ($text | ConvertFrom-Json) }
     } catch {
         $r = $_.Exception.Response
+        $text = $null
+        if ($_.ErrorDetails -and $_.ErrorDetails.Message) { $text = $_.ErrorDetails.Message }
+        if (-not $text -and $r) {
+            try {
+                $sr = New-Object IO.StreamReader($r.GetResponseStream(), [Text.Encoding]::UTF8)
+                $text = $sr.ReadToEnd()
+            } catch { $text = $null }
+        }
         if ($r) {
-            $sr = New-Object IO.StreamReader($r.GetResponseStream(), [Text.Encoding]::UTF8)
-            $text = $sr.ReadToEnd()
             $parsed = $null
-            try { $parsed = $text | ConvertFrom-Json } catch { $parsed = @{ message = $text } }
+            if ($text) { try { $parsed = $text | ConvertFrom-Json } catch { $parsed = @{ message = $text } } }
+            if (-not $parsed) { $parsed = @{ message = "" } }
             return [pscustomobject]@{ status = [int]$r.StatusCode; body = $parsed }
         }
         return [pscustomobject]@{ status = 0; body = @{ message = $_.Exception.Message } }

@@ -2,6 +2,11 @@
   port: 8080
 
 spring:
+  web:
+    resources:
+      cache:
+        cachecontrol:
+          no-store: true   # 开发期禁用静态资源缓存，避免改了页面看不到
   application:
     name: campus
   # Java 21 虚拟线程：高并发下无需线程池调优
